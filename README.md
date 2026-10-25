@@ -1,16 +1,13 @@
 # GeoInspect — Group 14
 
 Scalable Services (SEZG583), Assignment 1: a planned API-only GIS field-inspection
-dispatch application, using [GeoInspect](https://github.com/sharmaark/SS_Assignment)
+dispatch application.
 as a design reference.
 
 ## Repository status
 
-The initial commit contains planning documents and Git configuration only.
-All four member branches start from this same documentation baseline.
-Members will add application code, tests, dependencies, database setup, startup
+Members added application code, tests, dependencies, database setup, startup
 tooling, and verification evidence through their own commits and pull requests.
-Run instructions will be added with the implementations that make them valid.
 
 ## Members and branches
 
@@ -40,19 +37,6 @@ failures must preserve confirmed assignments and support recovery.
 Services communicate through APIs; each service owns its own database.
 These are design decisions, not a claim of completed implementation.
 
-## Start contributing
-
-```powershell
-git clone https://github.com/sharmaark/SS_Assignment_group_14.git
-cd SS_Assignment_group_14
-git switch --track origin/feature/workforce-discovery
-```
-
-Replace the example branch with your assigned branch. Configure your own Git
-identity, implement your assigned scope, and include meaningful tests and
-accurate setup instructions. Push your branch and open a pull request to `main`.
-Use a merge commit when merging so individual implementation commits remain
-visible for faculty review.
 
 ## Design documents
 
@@ -62,5 +46,5 @@ visible for faculty review.
 - [Design diagrams](docs/diagrams/)
 
 The proposal and diagrams are planning material adapted from the reference
-project. Group 14 implementation, tests, evidence, and final reports will be
+project. Group 14 implementation, tests, evidence, and final reports are
 added through the members' own contributions.
