@@ -86,17 +86,61 @@ class WorkforceRepository:
         with Session(self.engine) as session:
             return session.get(Inspector, inspector_id)
 
+    def get_inspector_availability(
+            self,
+            inspector_id: str,
+            slot: datetime,
+    ) -> dict:
+        """
+        Return the current availability of an inspector for a specific slot.
+
+        Availability is informational only. It does not lock the slot.
+        The database UNIQUE(inspector_id, slot) constraint remains the
+        authoritative protection against concurrent double booking.
+        """
+        with Session(self.engine) as session:
+            inspector = session.get(Inspector, inspector_id)
+
+            if not inspector:
+                raise BusinessRuleViolation(
+                    "INSPECTOR_NOT_FOUND",
+                    "Inspector not found",
+                    404,
+                )
+
+            reservation = session.scalar(
+                select(Reservation).where(
+                    Reservation.inspector_id == inspector_id,
+                    Reservation.slot == slot,
+                    )
+            )
+
+            return {
+                "inspector_id": inspector_id,
+                "slot": slot,
+                "available": reservation is None,
+            }
+
     def reserve(self, payload: dict) -> tuple[dict, bool]:
         with Session(self.engine) as session:
             existing = session.scalar(
-                select(Reservation).where(Reservation.assignment_id == payload["assignment_id"])
+                select(Reservation).where(
+                    Reservation.assignment_id == payload["assignment_id"]
+                )
             )
+
             if existing:
                 return reservation_dict(existing), True
 
             inspector = session.get(Inspector, payload["inspector_id"])
+
             if not inspector:
-                raise BusinessRuleViolation("INSPECTOR_NOT_FOUND", "Inspector not found", 404)
+                raise BusinessRuleViolation(
+                    "INSPECTOR_NOT_FOUND",
+                    "Inspector not found",
+                    404,
+                )
+
             flattened = {
                 "skills": inspector.skills,
                 "min_longitude": inspector.min_longitude,
@@ -131,11 +175,15 @@ class WorkforceRepository:
                 if existing:
                     return reservation_dict(existing), True
                 raise BusinessRuleViolation(
-                    "SLOT_UNAVAILABLE", "Inspector is already reserved for this slot"
+                    "SLOT_UNAVAILABLE",
+                    "Inspector is already reserved for this slot",
                 )
             session.refresh(reservation)
             return reservation_dict(reservation), False
 
     def list_reservations(self) -> list[dict]:
         with Session(self.engine) as session:
-            return [reservation_dict(item) for item in session.scalars(select(Reservation)).all()]
+            return [
+                reservation_dict(item)
+                for item in session.scalars(select(Reservation)).all()
+            ]
