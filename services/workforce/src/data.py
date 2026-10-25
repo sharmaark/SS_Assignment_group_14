@@ -1,11 +1,19 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import JSON, DateTime, Float, String, UniqueConstraint, create_engine, select
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    Float,
+    String,
+    UniqueConstraint,
+    create_engine,
+    select,
+)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
-from .business import BusinessRuleViolation, ensure_eligible
+from .business import BusinessRuleViolation, ensure_eligible, point_is_covered
 
 
 class Base(DeclarativeBase):
@@ -27,15 +35,39 @@ class Inspector(Base):
 class Reservation(Base):
     __tablename__ = "reservations"
     __table_args__ = (
-        UniqueConstraint("inspector_id", "slot", name="uq_inspector_slot"),
-        UniqueConstraint("assignment_id", name="uq_reservation_assignment"),
+        UniqueConstraint(
+            "inspector_id",
+            "slot",
+            name="uq_inspector_slot",
+        ),
+        UniqueConstraint(
+            "assignment_id",
+            name="uq_reservation_assignment",
+        ),
     )
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    inspector_id: Mapped[str] = mapped_column(String(36), index=True)
-    assignment_id: Mapped[str] = mapped_column(String(36), index=True)
-    slot: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+    )
+
+    inspector_id: Mapped[str] = mapped_column(
+        String(36),
+        index=True,
+    )
+
+    assignment_id: Mapped[str] = mapped_column(
+        String(36),
+        index=True,
+    )
+
+    slot: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True)
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True)
+    )
 
 
 def inspector_dict(item: Inspector) -> dict:
@@ -65,7 +97,10 @@ def reservation_dict(item: Reservation) -> dict:
 
 class WorkforceRepository:
     def __init__(self, database_url: str):
-        self.engine = create_engine(database_url, pool_pre_ping=True)
+        self.engine = create_engine(
+            database_url,
+            pool_pre_ping=True,
+        )
 
     def initialise(self) -> None:
         Base.metadata.create_all(self.engine)
@@ -74,17 +109,36 @@ class WorkforceRepository:
         with Session(self.engine) as session:
             session.execute(select(1))
 
+    # ---------------------------------------------------------
+    # INSPECTOR
+    # ---------------------------------------------------------
+
     def create_inspector(self, payload: dict) -> dict:
-        item = Inspector(id=str(uuid4()), **payload)
+        item = Inspector(
+            id=str(uuid4()),
+            **payload,
+        )
+
         with Session(self.engine) as session:
             session.add(item)
             session.commit()
             session.refresh(item)
             return inspector_dict(item)
 
-    def get_inspector(self, inspector_id: str) -> Inspector | None:
+    def get_inspector(
+            self,
+            inspector_id: str,
+    ) -> Inspector | None:
+
         with Session(self.engine) as session:
-            return session.get(Inspector, inspector_id)
+            return session.get(
+                Inspector,
+                inspector_id,
+            )
+
+    # ---------------------------------------------------------
+    # AVAILABILITY
+    # ---------------------------------------------------------
 
     def get_inspector_availability(
             self,
@@ -92,14 +146,17 @@ class WorkforceRepository:
             slot: datetime,
     ) -> dict:
         """
-        Return the current availability of an inspector for a specific slot.
+        Returns the current availability of an inspector.
 
-        Availability is informational only. It does not lock the slot.
-        The database UNIQUE(inspector_id, slot) constraint remains the
-        authoritative protection against concurrent double booking.
+        This is a snapshot only. It does not lock the inspector
+        or guarantee that a later reservation will succeed.
         """
         with Session(self.engine) as session:
-            inspector = session.get(Inspector, inspector_id)
+
+            inspector = session.get(
+                Inspector,
+                inspector_id,
+            )
 
             if not inspector:
                 raise BusinessRuleViolation(
@@ -121,18 +178,99 @@ class WorkforceRepository:
                 "available": reservation is None,
             }
 
-    def reserve(self, payload: dict) -> tuple[dict, bool]:
+    # ---------------------------------------------------------
+    # SMART INSPECTOR DISCOVERY
+    # ---------------------------------------------------------
+
+    def find_eligible_inspectors(
+            self,
+            required_skill: str,
+            longitude: float,
+            latitude: float,
+            slot: datetime,
+    ) -> list[dict]:
+        """
+        Find inspectors satisfying all three discovery rules:
+
+        1. Inspector has the required skill.
+        2. Requested location is inside the service area.
+        3. Inspector is not already reserved for the requested slot.
+
+        Discovery does not create or lock a reservation.
+        """
+
         with Session(self.engine) as session:
+
+            inspectors = session.scalars(
+                select(Inspector)
+            ).all()
+
+            eligible_inspectors: list[dict] = []
+
+            for inspector in inspectors:
+
+                # BR2 - skill eligibility
+                if required_skill not in inspector.skills:
+                    continue
+
+                # BR1 - geographic/service-area eligibility
+                if not point_is_covered(
+                        longitude,
+                        latitude,
+                        inspector.min_longitude,
+                        inspector.min_latitude,
+                        inspector.max_longitude,
+                        inspector.max_latitude,
+                ):
+                    continue
+
+                # Availability - inspector must be free
+                reservation = session.scalar(
+                    select(Reservation).where(
+                        Reservation.inspector_id
+                        == inspector.id,
+                        Reservation.slot == slot,
+                        )
+                )
+
+                if reservation is not None:
+                    continue
+
+                eligible_inspectors.append(
+                    inspector_dict(inspector)
+                )
+
+            return eligible_inspectors
+
+    # ---------------------------------------------------------
+    # RESERVATION
+    # ---------------------------------------------------------
+
+    def reserve(
+            self,
+            payload: dict,
+    ) -> tuple[dict, bool]:
+
+        with Session(self.engine) as session:
+
+            # Idempotency for the same assignment
             existing = session.scalar(
                 select(Reservation).where(
-                    Reservation.assignment_id == payload["assignment_id"]
+                    Reservation.assignment_id
+                    == payload["assignment_id"]
                 )
             )
 
             if existing:
-                return reservation_dict(existing), True
+                return (
+                    reservation_dict(existing),
+                    True,
+                )
 
-            inspector = session.get(Inspector, payload["inspector_id"])
+            inspector = session.get(
+                Inspector,
+                payload["inspector_id"],
+            )
 
             if not inspector:
                 raise BusinessRuleViolation(
@@ -148,6 +286,8 @@ class WorkforceRepository:
                 "max_longitude": inspector.max_longitude,
                 "max_latitude": inspector.max_latitude,
             }
+
+            # BR1 + BR2
             ensure_eligible(
                 flattened,
                 payload["required_skill"],
@@ -167,23 +307,38 @@ class WorkforceRepository:
                 session.commit()
             except IntegrityError:
                 session.rollback()
+                # Another request may have created the same
+                # assignment concurrently.
                 existing = session.scalar(
                     select(Reservation).where(
-                        Reservation.assignment_id == payload["assignment_id"]
+                        Reservation.assignment_id
+                        == payload["assignment_id"]
                     )
                 )
                 if existing:
-                    return reservation_dict(existing), True
+                    return (
+                        reservation_dict(existing),
+                        True,
+                    )
+
+                # Otherwise the inspector/slot uniqueness
+                # constraint was violated.
                 raise BusinessRuleViolation(
                     "SLOT_UNAVAILABLE",
                     "Inspector is already reserved for this slot",
                 )
             session.refresh(reservation)
-            return reservation_dict(reservation), False
+
+            return (
+                reservation_dict(reservation),
+                False,
+            )
 
     def list_reservations(self) -> list[dict]:
         with Session(self.engine) as session:
             return [
                 reservation_dict(item)
-                for item in session.scalars(select(Reservation)).all()
+                for item in session.scalars(
+                    select(Reservation)
+                ).all()
             ]
