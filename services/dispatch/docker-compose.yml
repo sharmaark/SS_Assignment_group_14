@@ -1,0 +1,21 @@
+name: geoinspect_dispatch
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: dispatch_user
+      POSTGRES_PASSWORD: dispatch_pass
+      POSTGRES_DB: dispatch_db
+    ports:
+      - "${DISPATCH_DB_PORT:-55433}:5432"
+    volumes:
+      - dispatch_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dispatch_user -d dispatch_db"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  dispatch_pgdata:
