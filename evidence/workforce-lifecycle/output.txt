@@ -1,0 +1,54 @@
+
+====================================================================
+WORKFORCE DISCOVERY & RESERVATION LIFECYCLE
+====================================================================
+
+Workforce service : UP
+
+1. Create eligible ELECTRICAL inspector
+--------------------------------------------------------------------
+Inspector ID : 0a80a224-9d7a-4cd1-a5d1-cd008e160dbc
+Skill        : ELECTRICAL
+Location     : Covered
+
+2. Search eligible inspectors before reservation
+--------------------------------------------------------------------
+Search result count : 7
+Demo inspector      : FOUND
+
+3. Check availability before reservation
+--------------------------------------------------------------------
+Available before reservation : TRUE
+
+4. Reserve inspector
+--------------------------------------------------------------------
+Reservation ID : 1f416d24-8bce-467e-80b4-e2f059e817ff
+State          : RESERVED
+
+5. Check availability after reservation
+--------------------------------------------------------------------
+Available after reservation  : FALSE
+
+6. Search eligible inspectors after reservation
+--------------------------------------------------------------------
+Search result count : 6
+Reserved inspector  : EXCLUDED
+
+====================================================================
+RESULT: PASS
+====================================================================
+
+Verified lifecycle:
+Discovery -> Available -> Reservation -> Unavailable -> Excluded from discovery
+
+{
+  "timestamp_utc": "2026-10-25T17:43:13.939503+00:00",
+  "inspector_id": "0a80a224-9d7a-4cd1-a5d1-cd008e160dbc",
+  "slot": "2026-11-04T17:43:13+00:00",
+  "availability_before": true,
+  "reservation_id": "1f416d24-8bce-467e-80b4-e2f059e817ff",
+  "availability_after": false,
+  "inspector_returned_before_reservation": true,
+  "inspector_returned_after_reservation": false,
+  "result": "PASS"
+}

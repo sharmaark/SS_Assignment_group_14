@@ -1,0 +1,48 @@
+
+====================================================================
+CHALLENGE 1 - CONCURRENT RESERVATION SAFETY
+====================================================================
+
+Workforce service : UP
+Inspector ID      : 3ea11840-6a5f-4e80-9bff-1426ecb78224
+Requested slot    : 2026-11-02T17:40:03+00:00
+Concurrent requests: 20
+Slot capacity     : 1
+
+Sending 20 concurrent reservation requests...
+
+--------------------------------------------------------------------
+Successful requests : 1
+Slot conflicts      : 19
+Final reservations  : 1
+--------------------------------------------------------------------
+
+Invariant:
+At most one reservation may exist for the same (inspector_id, slot).
+
+RESULT: PASS
+Exactly one concurrent reservation succeeded.
+All competing requests were rejected with SLOT_UNAVAILABLE.
+
+{
+  "timestamp_utc": "2026-10-25T17:40:04.769566+00:00",
+  "claim": "20 concurrent requests for capacity 1 produce exactly 1 success",
+  "inspector_id": "3ea11840-6a5f-4e80-9bff-1426ecb78224",
+  "slot": "2026-11-02T17:40:03+00:00",
+  "total_requests": 20,
+  "successes": 1,
+  "conflicts": 19,
+  "slot_unavailable": 19,
+  "final_reservations": [
+    {
+      "id": "73a3a700-4bb9-41a8-869e-b8757845f668",
+      "inspector_id": "3ea11840-6a5f-4e80-9bff-1426ecb78224",
+      "assignment_id": "49b03589-6dd5-4b0e-a95b-290190576b1f",
+      "slot": "2026-11-02T17:40:03+00:00",
+      "state": "RESERVED",
+      "created_at": "2026-10-25T17:40:04.616644+00:00"
+    }
+  ]
+}
+
+====================================================================
