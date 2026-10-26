@@ -1,0 +1,31 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.0, pytest-8.3.5, pluggy-1.7.0 -- /Users/5108903/Desktop/SS_Assignment_group_14/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/5108903/Desktop/SS_Assignment_group_14
+plugins: anyio-4.15.1
+collecting ... collected 21 items
+
+services/workforce/tests/test_availability.py::test_inspector_is_available_for_free_slot PASSED [  4%]
+services/workforce/tests/test_availability.py::test_inspector_is_unavailable_for_reserved_slot PASSED [  9%]
+services/workforce/tests/test_availability.py::test_same_inspector_is_available_for_different_slot PASSED [ 14%]
+services/workforce/tests/test_availability.py::test_unknown_inspector_returns_not_found PASSED [ 19%]
+services/workforce/tests/test_business.py::test_br1_inside_and_boundary_points_are_covered[77.5-12.5] PASSED [ 23%]
+services/workforce/tests/test_business.py::test_br1_inside_and_boundary_points_are_covered[77.0-12.0] PASSED [ 28%]
+services/workforce/tests/test_business.py::test_br1_inside_and_boundary_points_are_covered[78.0-13.0] PASSED [ 33%]
+services/workforce/tests/test_business.py::test_br1_outside_point_is_rejected PASSED [ 38%]
+services/workforce/tests/test_business.py::test_br2_missing_skill_is_rejected PASSED [ 42%]
+services/workforce/tests/test_business.py::test_br2_matching_skill_is_accepted PASSED [ 47%]
+services/workforce/tests/test_concurrency.py::test_challenge_1_concurrent_reservation_safety PASSED [ 52%]
+services/workforce/tests/test_discovery.py::test_matching_inspector_is_returned PASSED [ 57%]
+services/workforce/tests/test_discovery.py::test_wrong_skill_is_excluded PASSED [ 61%]
+services/workforce/tests/test_discovery.py::test_outside_service_area_is_excluded PASSED [ 66%]
+services/workforce/tests/test_discovery.py::test_service_area_boundary_is_included PASSED [ 71%]
+services/workforce/tests/test_discovery.py::test_reserved_inspector_is_excluded PASSED [ 76%]
+services/workforce/tests/test_discovery.py::test_reserved_inspector_is_available_for_different_slot PASSED [ 80%]
+services/workforce/tests/test_discovery.py::test_multiple_eligible_inspectors_are_returned PASSED [ 85%]
+services/workforce/tests/test_discovery.py::test_no_matching_inspector_returns_empty_list PASSED [ 90%]
+services/workforce/tests/test_lifecycle.py::test_discovery_reservation_lifecycle PASSED [ 95%]
+services/workforce/tests/test_reservation_constraint.py::test_br3_database_rejects_double_booking_for_same_inspector_slot PASSED [100%]
+
+- generated xml file: /Users/5108903/Desktop/SS_Assignment_group_14/evidence/tests/results.xml -
+============================== 21 passed in 0.45s ==============================
