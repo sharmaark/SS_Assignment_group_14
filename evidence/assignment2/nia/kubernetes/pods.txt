@@ -1,0 +1,8 @@
+NAME                         READY   STATUS    RESTARTS   AGE    IP            NODE       NOMINATED NODE   READINESS GATES
+dispatch-7895d7dd9c-dbfkq    1/1     Running   0          30m    10.244.0.10   minikube   <none>           <none>
+mongodb-69865878bb-4tcjk     1/1     Running   0          128m   10.244.0.6    minikube   <none>           <none>
+postgres-5f5bf6b5f8-7j7hl    1/1     Running   0          147m   10.244.0.3    minikube   <none>           <none>
+work-order-b84c7fdbb-xd5mf   1/1     Running   0          39m    10.244.0.7    minikube   <none>           <none>
+workforce-69df56768d-27lxs   1/1     Running   0          24m    10.244.0.12   minikube   <none>           <none>
+workforce-69df56768d-4js5s   1/1     Running   0          24m    10.244.0.11   minikube   <none>           <none>
+workforce-69df56768d-6d54d   1/1     Running   0          22m    10.244.0.13   minikube   <none>           <none>

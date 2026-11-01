@@ -1,0 +1,6 @@
+NAME         READY   UP-TO-DATE   AVAILABLE   AGE
+dispatch     1/1     1            1           30m
+mongodb      1/1     1            1           128m
+postgres     1/1     1            1           147m
+work-order   1/1     1            1           39m
+workforce    3/3     3            3           142m
