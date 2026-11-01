@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build an API-only GIS field inspection dispatch application that meets Assignment 1 requirements in seven days. Use synthetic utility asset locations, inspector service areas, and fixed inspection slots. The application assigns a selected inspector to an inspection; it does not automatically find or rank inspectors.
+Build an API-only GIS field inspection dispatch application . Use synthetic utility asset locations, inspector service areas, and fixed inspection slots. The application assigns a selected inspector to an inspection; it does not automatically find or rank inspectors.
 
 This document supersedes the earlier three-week proposal. It specifies planned behaviour, not completed implementation or evidence.
 
