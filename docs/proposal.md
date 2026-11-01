@@ -96,19 +96,6 @@ Log each attempt and delay. No circuit breaker, broker, hold-expiry job, or full
 - A simple Python API client; no UI, authentication, photo analysis, thumbnails, real SMS, payments, routing, nearest-inspector search, arbitrary scheduling, or dashboards.
 - Defer application containerisation and Minikube to Assignment 2. Keep configuration and process startup compatible with that later work.
 
-## Seven-day plan
-
-| Day | Work | Completion checkpoint |
-|---|---|---|
-| 1 | Freeze scope, create four service skeletons and isolated databases; health, config, logging, schema/API drafts | Four services start independently; outline report and diagrams |
-| 2 | Work Order transitions and minimal GridFS photo API; Workforce GIS/skill checks and atomic slot reservation; rule tests | Eligibility, evidence upload, and reservation work; concurrent reservation correctness verified |
-| 3 | Dispatch main flow and persisted idempotency; Notification deduplication | Happy-path end-to-end script and simultaneous replay pass |
-| 4 | Notification timeouts, backoff/jitter, mock failures, manual retry | Challenge 3A passes, including response-loss duplicate test |
-| 5 | Run all tests and three challenge scripts; capture outputs, logs, DB state | Evidence folders contain timestamped success and failure evidence |
-| 6 | Finalise report, diagrams, README, OpenAPI exports; run from a fresh clone | Another team member can run it using README only |
-| 7 | Fix remaining issues; record 8–10 minute live demo; final submission check | Repository accessible, report PDF and video/Drive links ready |
-
-Keep a little report work alongside implementation; days 6–7 should focus on verification and delivery rather than new features.
 
 ## Required submission artefacts
 
