@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+  namespace: geoinspect
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: geoinspect
+type: Opaque
+stringData:
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: geoinspect
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: geoinspect
+data:
+  init.sql: |
+    -- Workforce database
+    CREATE USER workforce_user WITH PASSWORD 'workforce_pass';
+    CREATE DATABASE workforce_db OWNER workforce_user;
+
+    -- Dispatch database
+    CREATE USER dispatch_user WITH PASSWORD 'dispatch_pass';
+    CREATE DATABASE dispatch_db OWNER dispatch_user;
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: geoinspect
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: geoinspect
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: postgres
+
+  template:
+    metadata:
+      labels:
+        app: postgres
+        app.kubernetes.io/name: postgres
+        app.kubernetes.io/part-of: geoinspect
+
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: postgres
+              containerPort: 5432
+
+          envFrom:
+            - secretRef:
+                name: postgres-secret
+
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - postgres
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 6
+
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - postgres
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+
+          volumeMounts:
+            - name: postgres-init
+              mountPath: /docker-entrypoint-initdb.d
+
+      volumes:
+        - name: postgres-init
+          configMap:
+            name: postgres-init
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: geoinspect
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: geoinspect
+spec:
+  selector:
+    app: postgres
+
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+
+  type: ClusterIP

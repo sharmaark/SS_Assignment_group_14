@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dispatch
+  namespace: geoinspect
+  labels:
+    app.kubernetes.io/name: dispatch
+    app.kubernetes.io/part-of: geoinspect
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: dispatch
+
+  template:
+    metadata:
+      labels:
+        app: dispatch
+        app.kubernetes.io/name: dispatch
+        app.kubernetes.io/part-of: geoinspect
+
+    spec:
+      containers:
+        - name: dispatch
+          image: geoinspect-dispatch:a2
+          imagePullPolicy: Never
+
+          ports:
+            - name: http
+              containerPort: 8003
+
+          env:
+            - name: DISPATCH_PORT
+              value: "8003"
+
+            - name: DISPATCH_DATABASE_URL
+              value: "postgresql+psycopg://dispatch_user:dispatch_pass@postgres:5432/dispatch_db"
+
+            - name: WORK_ORDER_URL
+              value: "http://work-order:8001"
+
+            - name: WORKFORCE_URL
+              value: "http://workforce:8002"
+
+            - name: NOTIFICATION_URL
+              value: "http://notification:8004"
+
+            - name: DOWNSTREAM_TIMEOUT_SECONDS
+              value: "1.0"
+
+            - name: NOTIFICATION_MAX_ATTEMPTS
+              value: "3"
+
+            - name: RETRY_BASE_SECONDS
+              value: "0.15"
+
+            - name: IDEMPOTENCY_WAIT_SECONDS
+              value: "8.0"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8003
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 10
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8003
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dispatch
+  namespace: geoinspect
+  labels:
+    app.kubernetes.io/name: dispatch
+    app.kubernetes.io/part-of: geoinspect
+spec:
+  selector:
+    app: dispatch
+
+  ports:
+    - name: http
+      port: 8003
+      targetPort: 8003
+
+  type: ClusterIP
