@@ -1,4 +1,4 @@
-# GeoInspect: one-week assignment scope
+# GeoInspect
 
 ## Goal
 
