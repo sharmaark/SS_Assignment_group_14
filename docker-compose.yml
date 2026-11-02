@@ -1,5 +1,5 @@
 services:
-  postgres:
+  workforce-postgres:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: postgres
@@ -15,5 +15,81 @@ services:
       timeout: 3s
       retries: 20
 
+  dispatch-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: dispatch_user
+      POSTGRES_PASSWORD: dispatch_pass
+      POSTGRES_DB: dispatch_db
+    ports:
+      - "55433:5432"
+    volumes:
+      - dispatch_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dispatch_user -d dispatch_db"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  mongodb:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_DATABASE: work_order_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - work_order_mongodb_data:/data/db
+      - ./infra/mongodb/init.js:/docker-entrypoint-initdb.d/init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  work-order:
+    build:
+      context: .
+      dockerfile: services/work_order/Dockerfile
+    environment:
+      WORK_ORDER_MONGODB_URL: mongodb://work_order_user:work_order_pass@mongodb:27017/work_order_db?authSource=work_order_db
+    ports:
+      - "8001:8001"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  workforce:
+    build:
+      context: .
+      dockerfile: services/workforce/Dockerfile
+    environment:
+      WORKFORCE_DATABASE_URL: postgresql+psycopg://workforce_user:workforce_pass@workforce-postgres:5432/workforce_db
+    ports:
+      - "8002:8002"
+    depends_on:
+      workforce-postgres:
+        condition: service_healthy
+
+  dispatch:
+    build:
+      context: .
+      dockerfile: services/dispatch/Dockerfile
+    environment:
+      DISPATCH_DATABASE_URL: postgresql+psycopg://dispatch_user:dispatch_pass@dispatch-postgres:5432/dispatch_db
+      WORK_ORDER_URL: http://work-order:8001
+      WORKFORCE_URL: http://workforce:8002
+      NOTIFICATION_URL: http://notification:8004
+    ports:
+      - "8003:8003"
+    depends_on:
+      dispatch-postgres:
+        condition: service_healthy
+      work-order:
+        condition: service_started
+      workforce:
+        condition: service_started
+
 volumes:
   geoinspect_pgdata:
+  dispatch_pgdata:
+  work_order_mongodb_data:
