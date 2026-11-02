@@ -1,0 +1,47 @@
+Challenge 2: Idempotency
+========================
+
+Command:
+python scripts/challenge_2_idempotency.py
+
+Result: 1 passed, 18 deselected
+
+First call (HTTP 201):
+{
+  "created_at": "2026-11-02 16:51:08.126183",
+  "id": "cf5f31f5-4e97-49cb-add9-30ae1f994cb1",
+  "inspector_id": "205ee925-0145-4c37-942b-33ec41af8efc",
+  "notification_status": "SENT",
+  "reservation_id": "c6063635-2913-4f29-9c87-1fa0e1eeecbb",
+  "stage": "CONFIRMED",
+  "status": "CONFIRMED",
+  "work_order_id": "3f6897b5-28eb-4cc1-843a-361a217a34d5"
+}
+
+Repeated call (HTTP 201):
+{
+  "created_at": "2026-11-02 16:51:08.126183",
+  "id": "cf5f31f5-4e97-49cb-add9-30ae1f994cb1",
+  "inspector_id": "205ee925-0145-4c37-942b-33ec41af8efc",
+  "notification_status": "SENT",
+  "reservation_id": "c6063635-2913-4f29-9c87-1fa0e1eeecbb",
+  "stage": "CONFIRMED",
+  "status": "CONFIRMED",
+  "work_order_id": "3f6897b5-28eb-4cc1-843a-361a217a34d5"
+}
+Repeated response body is identical to the first call.
+Simultaneous requests: 8; all HTTP 201; all response bodies identical.
+
+Replay log:
+{"service": "dispatch", "event": "idempotency_replay", "correlation_id": "dispatch-contract-test", "key": "test-b392ae8c-5513-4e0e-93ff-140cf2f02ab6", "assignment_id": "cf5f31f5-4e97-49cb-add9-30ae1f994cb1"}
+
+Database assertion:
+assignments=1
+idempotency_records=1
+fingerprint_matches_request=true
+stored_status=201
+stored_response_matches=true
+
+The test also asserts that the downstream claim, reservation, confirmation, and
+notification flow executes only once. Peer APIs are test doubles; persistence is
+verified in the test's temporary SQLite database.
