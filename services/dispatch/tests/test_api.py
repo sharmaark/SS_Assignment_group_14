@@ -1,3 +1,4 @@
+import json
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event
 from uuid import uuid4
@@ -5,6 +6,7 @@ from uuid import uuid4
 import pytest
 
 from services.dispatch.src import api
+from services.dispatch.src.business import retry_delay
 
 
 def submit(system, payload=None, headers=None):
@@ -126,6 +128,79 @@ def test_notification_failure_preserves_confirmation_and_manual_retry_keeps_stor
     assert system.peers.counts["notify"] == 4
     assert submit(system).json() == response.json()
     assert len(system.peers.notifications) == 1
+
+
+def test_challenge_3a_resilience_handles_timeout_outage_and_recovery(system, monkeypatch, caplog):
+    delays = []
+
+    def deterministic_delay(base_seconds, attempt_number):
+        return retry_delay(base_seconds, attempt_number, random_value=0.5)
+
+    monkeypatch.setattr(api, "retry_delay", deterministic_delay)
+    monkeypatch.setattr(api.time, "sleep", delays.append)
+    monkeypatch.setattr(api.settings, "retry_base_seconds", 0.2)
+    system.peers.failures["notify"] = ["timeout_after", "503", "503"]
+
+    first = submit(system)
+    assert first.status_code == 201
+    assert first.json()["status"] == "CONFIRMED"
+    assert first.json()["notification_status"] == "PENDING"
+    assert delays == pytest.approx([0.3, 0.5])
+    assert system.peers.counts["notify"] == 3
+    automatic_attempts = system.peers.counts["notify"]
+    assert len(system.peers.notifications) == 1
+
+    events = [
+        json.loads(record.getMessage())
+        for record in caplog.records
+        if record.name == "dispatch" and record.getMessage().startswith("{")
+    ]
+    retry_logs = [
+        event
+        for event in events
+        if event["event"] in {"notification_attempt_failed", "notification_retry_scheduled"}
+    ]
+    assert [event["attempt"] for event in retry_logs if event["event"] == "notification_attempt_failed"] == [1, 2, 3]
+    assert [event["delay_seconds"] for event in retry_logs if event["event"] == "notification_retry_scheduled"] == pytest.approx([0.3, 0.5])
+
+    assignment_id = first.json()["id"]
+    recovery = system.client.post(f"/api/v1/assignments/{assignment_id}/retry-notification")
+    assert recovery.status_code == 200
+    assert recovery.json()["notification_status"] == "SENT"
+    assert system.repository.get_assignment(assignment_id)["notification_status"] == "SENT"
+    assert len(system.peers.notifications) == 1
+
+    notification_payloads = [
+        payload
+        for operation, payload, _ in system.peers.calls
+        if operation == "notify"
+    ]
+    delivery_keys = {payload["delivery_key"] for payload in notification_payloads}
+    assert len(notification_payloads) == 4
+    assert len(delivery_keys) == 1
+
+    replay = submit(system)
+    assert replay.status_code == 201
+    assert replay.json() == first.json()
+
+    print(json.dumps({
+        "first_response": {"status": first.status_code, "body": first.json()},
+        "automatic_retries": {
+            "attempts": automatic_attempts,
+            "delays_seconds": delays,
+            "assignment_status": first.json()["status"],
+            "notification_status_before_recovery": first.json()["notification_status"],
+        },
+        "retry_logs": retry_logs,
+        "recovery": {"status": recovery.status_code, "notification_status": recovery.json()["notification_status"]},
+        "duplicate_protection": {
+            "delivery_attempts_including_recovery": len(notification_payloads),
+            "automatic_attempts": automatic_attempts,
+            "stored_notifications": len(system.peers.notifications),
+            "unique_delivery_keys": len(delivery_keys),
+            "same_key_replay_matches_first_response": replay.json() == first.json(),
+        },
+    }, indent=2, sort_keys=True))
 
 
 def test_lost_notification_response_reuses_delivery_key(system):
