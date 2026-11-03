@@ -1,0 +1,11 @@
+=== Workforce Kubernetes Scaling Evidence ===
+
+Deployment:
+NAME        READY   UP-TO-DATE   AVAILABLE   AGE
+workforce   3/3     3            3           142m
+
+Replicas:
+NAME                         READY   STATUS    RESTARTS   AGE
+workforce-69df56768d-27lxs   1/1     Running   0          24m
+workforce-69df56768d-4js5s   1/1     Running   0          24m
+workforce-69df56768d-6d54d   1/1     Running   0          23m

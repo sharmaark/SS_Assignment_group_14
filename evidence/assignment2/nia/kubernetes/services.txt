@@ -1,0 +1,6 @@
+NAME         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)     AGE
+dispatch     ClusterIP   10.96.88.31      <none>        8003/TCP    30m
+mongodb      ClusterIP   10.100.18.237    <none>        27017/TCP   128m
+postgres     ClusterIP   10.111.46.132    <none>        5432/TCP    147m
+work-order   ClusterIP   10.109.157.212   <none>        8001/TCP    39m
+workforce    ClusterIP   10.105.103.88    <none>        8002/TCP    142m

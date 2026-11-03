@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workforce
+  namespace: geoinspect
+  labels:
+    app.kubernetes.io/name: workforce
+    app.kubernetes.io/part-of: geoinspect
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: workforce
+
+  template:
+    metadata:
+      labels:
+        app: workforce
+        app.kubernetes.io/name: workforce
+        app.kubernetes.io/part-of: geoinspect
+
+    spec:
+      containers:
+        - name: workforce
+          image: geoinspect-workforce:a2
+
+          # The image is loaded directly into Minikube.
+          # Do not attempt to pull it from an external registry.
+          imagePullPolicy: Never
+
+          ports:
+            - name: http
+              containerPort: 8002
+
+          env:
+            - name: WORKFORCE_PORT
+              value: "8002"
+
+            - name: WORKFORCE_DATABASE_URL
+              value: "postgresql+psycopg://workforce_user:workforce_pass@postgres:5432/workforce_db"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 6
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workforce
+  namespace: geoinspect
+  labels:
+    app.kubernetes.io/name: workforce
+    app.kubernetes.io/part-of: geoinspect
+spec:
+  selector:
+    app: workforce
+
+  ports:
+    - name: http
+      port: 8002
+      targetPort: 8002
+
+  type: ClusterIP

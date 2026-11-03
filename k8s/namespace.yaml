@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: geoinspect
+  labels:
+    app.kubernetes.io/name: geoinspect
+    app.kubernetes.io/part-of: geoinspect
